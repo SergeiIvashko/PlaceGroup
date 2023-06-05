@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<RevitAddIns>
+	<AddIn Type="Command">
+		<Name>PlaceGroup</Name>
+		<FullClassName>PlaceGroup.Class1</FullClassName>
+		<Text>PlaceGroup</Text>
+		<Description>Places the Group at Particular Point</Description>
+		<VisibilityMode>AlwaysVisible</VisibilityMode>
+		<Assembly>C:\Users\serge\Desktop\CsLearning\RevitAddins\FirtsApp\PlaceGroup\bin\Debug\PlaceGroup.dll</Assembly>
+		<AddInId>248E64BE-DA32-42A2-A7A4-B5E7D93339B6</AddInId>
+		<VendorId>ADSK</VendorId>
+		<VendorDescription>Autodesk, Inc, www.autodesk.com</VendorDescription>
+	</AddIn>
+</RevitAddIns>
