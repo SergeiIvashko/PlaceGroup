@@ -34,15 +34,13 @@ namespace PlaceGroup
                 var origin = GetElementCenter(group);
                 var room = GetRoomOfGroup(doc, origin);
                 var sourceCenter = GetRoomCenter(room);
-                var coords = $"X: {sourceCenter.X} \r\n Y: {sourceCenter.Y} \r\n Z: {sourceCenter.Z}";
-                TaskDialog.Show("Source room Center", coords);
 
-                //var point = sel.PickPoint("Pick a point to place group");
-                var point = sourceCenter + new XYZ(20, 0, 0);
+                var roomPickFilter = new RoomPickFilter();
+                var rooms = sel.PickObjects(ObjectType.Element, roomPickFilter, "Select target rooms for duplicate furniture group");
 
                 var trans = new Transaction(doc);
                 trans.Start("Lab");
-                doc.Create.PlaceGroup(point, group.GroupType);
+                PlaceFurnitureInRooms(doc, rooms, sourceCenter, group.GroupType, origin);
                 trans.Commit();
 
                 return Result.Succeeded;
@@ -58,18 +56,18 @@ namespace PlaceGroup
             }
         }
 
-        public XYZ GetElementCenter(Element element)
+        private XYZ GetElementCenter(Element element)
         {
             var boundingBox = element.get_BoundingBox(null);
             return (boundingBox.Max + boundingBox.Min) / 2;
         }
 
-        Room GetRoomOfGroup(Document doc, XYZ point)
+        private Room GetRoomOfGroup(Document doc, XYZ point)
         {
-            var collector = new FilteredElementCollector(doc);
-            collector.OfCategory(BuiltInCategory.OST_Rooms);
+            var elements = new FilteredElementCollector(doc);
+            elements.OfCategory(BuiltInCategory.OST_Rooms);
             Room room = null;
-            foreach (var element in collector)
+            foreach (var element in elements)
             {
                 room = element as Room;
                 if (room != null && room.IsPointInRoom(point))
@@ -81,11 +79,30 @@ namespace PlaceGroup
             return room;
         }
 
-        public XYZ GetRoomCenter(Room room)
+        private XYZ GetRoomCenter(Room room)
         {
             var boundCenter = GetElementCenter(room);
             var locationPoint = (LocationPoint) room.Location;
             return new XYZ(boundCenter.X, boundCenter.Y, locationPoint.Point.Z);
+        }
+
+        private void PlaceFurnitureInRooms(Document doc,
+                                          IList<Reference> rooms,
+                                          XYZ sourceCenter,
+                                          GroupType groupType,
+                                          XYZ groupOrigin)
+        {
+            var offset = groupOrigin - sourceCenter;
+            var offsetXY = new XYZ(offset.X, offset.Y, 0);
+            foreach (var room in rooms)
+            {
+                var roomTarget = doc.GetElement(room) as Room;
+                if (roomTarget != null)
+                {
+                    var roomCenter = GetRoomCenter(roomTarget);
+                    doc.Create.PlaceGroup(roomCenter + offsetXY, groupType);
+                }
+            }
         }
     }
 
@@ -93,7 +110,20 @@ namespace PlaceGroup
     {
         public bool AllowElement(Element elem)
         {
-            return elem.Category.Id.IntegerValue.Equals((int)BuiltInCategory.OST_IOSModelGroups);
+            return elem.Category.Id.Value.Equals((long)BuiltInCategory.OST_IOSModelGroups);
+        }
+
+        public bool AllowReference(Reference reference, XYZ position)
+        {
+            return false;
+        }
+    }
+
+    public class RoomPickFilter : ISelectionFilter
+    {
+        public bool AllowElement(Element elem)
+        {
+            return (elem.Category.Id.Value.Equals((long)BuiltInCategory.OST_Rooms));
         }
 
         public bool AllowReference(Reference reference, XYZ position)
